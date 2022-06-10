@@ -19,8 +19,7 @@ header = {
     "Referrer-Policy": "strict-origin-when-cross-origin"
 }
 
-def buildPayload(addressLn, zipcode):
-
+def buildSimplePayload(addressLn, zipcode): # returns payload for an apartment that doesn't require a unit number
   # {"lobs":["broadband"],"addressLine1":"4230 Garrett Rd","mode":"fullAddress","city":"","state":"","zip":"27707","unitType1":"","customerType":"consumer","relocation_flag":true}
   payload = {
     "lobs":["broadband"],
@@ -34,6 +33,29 @@ def buildPayload(addressLn, zipcode):
     "relocation_flag":True
   }
   return payload
+
+def buildUnitPayload(addr): # returns payload for an apartment that requires a unit number
+  # {"lobs":["broadband"],"addressLine1":"6801 Chesterbrook Ct","addressLine2":"UNIT LEASING 4","mode":"fullAddress","city":"","state":"","zip":"27615","unitType1":"UNIT","unitNumber1":"LEASING 4","unitNumber2":"","customerType":"consumer","relocation_flag":true}
+  payload = {
+    "lobs":["broadband"],
+    "addressLine1": addr["addressLine1"],
+    "addressLine2": addr["addressLine2"],
+    "mode":"fullAddress",
+    "city":"",
+    "state":"",
+    "zip":addr["zip"],
+    "unitType1":"UNIT",
+    "unitNumber1":addr["unitNumber1"],
+    "unitNumber2":"",
+    "customerType":"consumer",
+    "relocation_flag":True
+  }
+  return payload
+
+def newRequest(addr):
+  payload = buildUnitPayload(addr)
+  r = requests.post("https://www.att.com/msapi/onlinesalesorchestration/att-wireline-sales-eapi/v1/baseoffers", json=payload, headers=header)
+  return parseResponse(r)
 
 def parseResponse(res):
   result = {}
@@ -49,6 +71,14 @@ def parseResponse(res):
   if "error" in data['serviceAvailability']:
     result["status"] = "ERROR " + data['serviceAvailability']['error']["errorId"] 
     return result
+
+  if "mduAddress" in data['serviceAvailability']:
+    newaddr = data['serviceAvailability']['mduAddress'][0]
+    print("multiple unit dwelling response detected. Selecting first option" + newaddr['addressLine2'])
+    mduRes = newRequest(newaddr)
+    if mduRes["status"] == "success":
+      mduRes["status"] = "success - MDU"
+      return mduRes
   
   if data['baseOffers'] == None:
     print("No base offers")
@@ -68,7 +98,7 @@ def parseResponse(res):
   return result
 
 def checkAddress(addressLn, zipcode):
-  payload = buildPayload(addressLn, zipcode)
+  payload = buildSimplePayload(addressLn, zipcode)
   # r = requests.post("https://api.att.com/rest/1/services/address/validate", json=payload)
   r = requests.post("https://www.att.com/msapi/onlinesalesorchestration/att-wireline-sales-eapi/v1/baseoffers", json=payload, headers=header)
   # print(r.text)
