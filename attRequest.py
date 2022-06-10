@@ -1,4 +1,23 @@
 import requests
+import json
+
+header = {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,fr;q=0.8",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "x-dtpc": "16$86673792_303h54vHNHFGFACDGHAHVHFLNERWORQEKOMUFKQ-0e0",
+    "Referer": "https://www.att.com/buy/broadband/availability.html",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+}
 
 def buildPayload(addressLn, zipcode):
 
@@ -18,11 +37,19 @@ def buildPayload(addressLn, zipcode):
 
 def parseResponse(res):
   result = {}
+  # catching any incorrect responses
   if res.status_code != 200:
-    return False
+    result["status"] = "HTTP Error" + str(res.status_code)
+    return result
   print(res)
+
   data = res.json()
-  data = data['content']
+  data = data['content'] # processing the content header out of the response
+
+  if "error" in data['serviceAvailability']:
+    result["status"] = "ERROR " + data['serviceAvailability']['error']["errorId"] 
+    return result
+  
   if data['baseOffers'] == None:
     print("No base offers")
     result["status"] = "No Offers"
@@ -43,7 +70,7 @@ def parseResponse(res):
 def checkAddress(addressLn, zipcode):
   payload = buildPayload(addressLn, zipcode)
   # r = requests.post("https://api.att.com/rest/1/services/address/validate", json=payload)
-  r = requests.post("https://www.att.com/msapi/onlinesalesorchestration/att-wireline-sales-eapi/v1/baseoffers", json=payload)
+  r = requests.post("https://www.att.com/msapi/onlinesalesorchestration/att-wireline-sales-eapi/v1/baseoffers", json=payload, headers=header)
   # print(r.text)
   return parseResponse(r)
 
