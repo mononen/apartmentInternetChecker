@@ -1,4 +1,4 @@
-import xlrd
+import openpyxl
 import attRequest
 
 
@@ -7,18 +7,24 @@ def clean_address(address):
   zipcode = address[-5:]
   return addrLn, zipcode
 
+def writeResults(res, addr, sheet):
+  sheet.write(addr, 2, res['provider'])
+  sheet.write(addr, 4, res['maxDownload'])
+  sheet.write(addr, 6, res['packageName'])
 
-loc = ("./data.xls")
+loc = "./data.xls"
 
-wb = xlrd.open_workbook(loc)
-sheet = wb.sheet_by_index(0)
+wb = openpyxl.load_workbook(loc)
+sheet = wb.active
+m_row = sheet.max_row
 
-for addr in range(sheet.nrows):
+for addr in range(1, m_row + 1):
   print(sheet.cell_value(addr, 1))
   if sheet.cell_value(addr, 1)[-3].isnumeric() == True:
     addrLn, zipcode = clean_address(sheet.cell_value(addr, 1))
     print(addrLn, zipcode)
-    attRequest.checkAddress(addrLn, zipcode)
+    res = attRequest.checkAddress(addrLn, zipcode)
+    writeResults(res, addr, sheet)
   else:
     print("No zipcode")
 

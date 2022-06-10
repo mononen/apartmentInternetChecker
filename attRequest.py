@@ -16,11 +16,33 @@ def buildPayload(addressLn, zipcode):
   }
   return payload
 
+def parseResponse(res):
+  result = {}
+  if res.status_code != 200:
+    return False
+  print(res)
+  data = res.json()
+  data = data['content']
+  if data['baseOffers'] == None:
+    return False
+  # print(data)
+
+  servicesAvail = data['serviceAvailability']['availableServices']
+  print(servicesAvail['maxInternetDownloadSpeedAvailableMBPS'])
+  print(servicesAvail['maxInternetDisplayText'])
+
+  result["maxDownload"] = servicesAvail['maxInternetDownloadSpeedAvailableMBPS']
+  result["packageName"] = servicesAvail['maxInternetDisplayText']
+  result["provider"] = "ATT"
+
+  return result
+
 def checkAddress(addressLn, zipcode):
   payload = buildPayload(addressLn, zipcode)
   # r = requests.post("https://api.att.com/rest/1/services/address/validate", json=payload)
   r = requests.post("https://www.att.com/msapi/onlinesalesorchestration/att-wireline-sales-eapi/v1/baseoffers", json=payload)
-  print(r.text)
-  return r.text
+  # print(r.text)
+  return parseResponse(r)
+
 
   
