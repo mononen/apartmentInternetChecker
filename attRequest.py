@@ -24,7 +24,9 @@ def parseResponse(res):
   data = res.json()
   data = data['content']
   if data['baseOffers'] == None:
-    return False
+    print("No base offers")
+    result["status"] = "No Offers"
+    return result
   # print(data)
 
   servicesAvail = data['serviceAvailability']['availableServices']
@@ -34,6 +36,7 @@ def parseResponse(res):
   result["maxDownload"] = servicesAvail['maxInternetDownloadSpeedAvailableMBPS']
   result["packageName"] = servicesAvail['maxInternetDisplayText']
   result["provider"] = "ATT"
+  result["status"] = "success"
 
   return result
 
